@@ -96,6 +96,24 @@ workflow NFCOV {
     }
     BAM_COVERAGE(ch_cover_bams, ch_ref_cov)
 
+    //
+    // Collate and save software versions. Modules emit versions via the 'versions' topic.
+    //
+    def topic_versions = channel.topic('versions')
+        .map { process, tool, version -> [ process[process.lastIndexOf(':') + 1..-1], "  ${tool}: ${version}" ] }
+        .groupTuple(by: [0])
+        .map { process, tool_versions ->
+            "${process}:\n${tool_versions.unique().sort().join('\n')}"
+        }
+
+    topic_versions
+        .collectFile(
+            storeDir: "${params.outdir}/pipeline_info",
+            name: 'nf-cov_software_mqc_versions.yml',
+            sort: true,
+            newLine: true
+        )
+
     emit:
     clean_bam   = BAM_LIBRARY.out.bam          // channel: [ val(meta), path(*.bam) ]
     clean_bai   = BAM_LIBRARY.out.bai          // channel: [ val(meta), path(*.bai) ]
