@@ -10,6 +10,7 @@ include { PREPARE_GENOME } from '../subworkflows/local/prepare_genome'
 include { FASTQ_QC_TRIM } from '../subworkflows/local/fastq_qc_trim'
 include { FASTQ_ALIGN } from '../subworkflows/local/fastq_align'
 include { BAM_LIBRARY } from '../subworkflows/local/bam_library'
+include { BAM_MERGE_LEVELS } from '../subworkflows/local/bam_merge_levels'
 include { FASTQ_READ_LENGTH } from '../modules/local/fastq_read_length'
 include { buildReads; assignRuns; validateSamplesheet } from '../subworkflows/local/utils_nfcov_pipeline'
 
@@ -74,9 +75,16 @@ workflow NFCOV {
         params.skip_preseq
     )
 
+    //
+    // Replicate merges: .mLb (tech reps) and .mRp (bio reps)
+    //
+    BAM_MERGE_LEVELS(BAM_LIBRARY.out.bam, ch_ref, params.save_library)
+
     emit:
     clean_bam   = BAM_LIBRARY.out.bam          // channel: [ val(meta), path(*.bam) ]
     clean_bai   = BAM_LIBRARY.out.bai          // channel: [ val(meta), path(*.bai) ]
+    mLb         = BAM_MERGE_LEVELS.out.mLb     // channel: [ val(meta), path(*.mLb.bam) ]
+    mRp         = BAM_MERGE_LEVELS.out.mRp     // channel: [ val(meta), path(*.mRp.bam) ]
     dup_metrics = BAM_LIBRARY.out.dup_metrics  // channel: [ val(meta), path(*.metrics.txt) ]
     stats       = BAM_LIBRARY.out.stats
     flagstat    = BAM_LIBRARY.out.flagstat
