@@ -1,0 +1,6 @@
+sample,fastq_1,fastq_2,replicate,tech_replicate
+sampleA,tests/data/sampleA_T1run1_1.fastq.gz,tests/data/sampleA_T1run1_2.fastq.gz,1,1
+sampleA,tests/data/sampleA_T1run2_1.fastq.gz,tests/data/sampleA_T1run2_2.fastq.gz,1,1
+sampleA,tests/data/sampleA_T2_1.fastq.gz,tests/data/sampleA_T2_2.fastq.gz,1,2
+sampleA,tests/data/sampleA_rep2_1.fastq.gz,tests/data/sampleA_rep2_2.fastq.gz,2,1
+sampleB,tests/data/sampleB_1.fastq.gz,,1,1
