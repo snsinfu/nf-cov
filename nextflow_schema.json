@@ -1,0 +1,202 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/snsinfu/nf-cov/main/nextflow_schema.json",
+    "title": "nf-cov pipeline parameters",
+    "description": "FASTQ to genome-wide coverage bigWig",
+    "type": "object",
+    "$defs": {
+        "input_output_options": {
+            "title": "Input/output options",
+            "type": "object",
+            "fa_icon": "fas fa-terminal",
+            "description": "Define where the pipeline should find input data and save output data.",
+            "required": ["input"],
+            "properties": {
+                "input": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "description": "Path to comma-separated file containing information about the samples.",
+                    "fa_icon": "fas fa-file-csv"
+                },
+                "outdir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "The output directory where the results will be saved.",
+                    "default": "results",
+                    "fa_icon": "fas fa-folder-open"
+                }
+            }
+        },
+        "reference_genome_options": {
+            "title": "Reference genome options",
+            "type": "object",
+            "fa_icon": "fas fa-dna",
+            "description": "Reference genome related files and options.",
+            "properties": {
+                "genome": {
+                    "type": "string",
+                    "description": "Name of iGenomes reference.",
+                    "fa_icon": "fas fa-book"
+                },
+                "igenomes_base": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "The base path to the iGenomes references.",
+                    "fa_icon": "fas fa-question"
+                },
+                "igenomes_ignore": {
+                    "type": "boolean",
+                    "description": "Do not load the iGenomes reference config.",
+                    "fa_icon": "fas fa-ban"
+                },
+                "fasta": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "description": "Path to FASTA genome file.",
+                    "fa_icon": "fas fa-file-signature"
+                },
+                "bwa_index": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "exists": true,
+                    "description": "Path to a precomputed BWA index directory.",
+                    "fa_icon": "fas fa-database"
+                },
+                "bwamem2_index": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "exists": true,
+                    "description": "Path to a precomputed bwa-mem2 index directory.",
+                    "fa_icon": "fas fa-database"
+                },
+                "bwamem3_index": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "exists": true,
+                    "description": "Path to a precomputed bwa-mem3 index directory.",
+                    "fa_icon": "fas fa-database"
+                },
+                "aligner": {
+                    "type": "string",
+                    "default": "bwa",
+                    "enum": ["bwa", "bwa-mem2", "bwa-mem3"],
+                    "description": "Aligner to use.",
+                    "fa_icon": "fas fa-tools"
+                }
+            }
+        },
+        "coverage_options": {
+            "title": "Coverage options",
+            "type": "object",
+            "fa_icon": "fas fa-chart-area",
+            "description": "Options for coverage track generation.",
+            "properties": {
+                "effective_genome_size": {
+                    "type": "integer",
+                    "description": "Effective genome size for RPGC normalization. Resolved from the catalog or estimated with khmer when unset.",
+                    "fa_icon": "fas fa-ruler"
+                },
+                "read_length": {
+                    "type": "integer",
+                    "description": "Read length used for catalog gsize lookup / khmer. Inferred from FASTQ when unset.",
+                    "fa_icon": "fas fa-ruler-horizontal"
+                },
+                "bin_size": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Bin size in bases for the coverage track.",
+                    "fa_icon": "fas fa-columns"
+                },
+                "normalization": {
+                    "type": "string",
+                    "default": "RPGC",
+                    "enum": ["None", "RPKM", "CPM", "BPM", "RPGC"],
+                    "description": "Coverage normalization method.",
+                    "fa_icon": "fas fa-balance-scale"
+                },
+                "min_mapq": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Minimum mapping quality for reads used in coverage.",
+                    "fa_icon": "fas fa-filter"
+                },
+                "fragment_size": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "Fragment size used to extend reads. 0 = auto (paired-end estimate; single-end no extension).",
+                    "fa_icon": "fas fa-arrows-alt-h"
+                },
+                "normalization_exclude_chroms": {
+                    "type": "string",
+                    "description": "Comma-separated chromosomes excluded from normalization scaling. Defaults to the catalog mito_name.",
+                    "fa_icon": "fas fa-ban"
+                }
+            }
+        },
+        "output_options": {
+            "title": "Output options",
+            "type": "object",
+            "fa_icon": "fas fa-file-export",
+            "description": "Options for publishing outputs.",
+            "properties": {
+                "save_library": {
+                    "type": "boolean",
+                    "description": "Publish per-tech-library bigWigs.",
+                    "fa_icon": "fas fa-save"
+                },
+                "publish_dir_mode": {
+                    "type": "string",
+                    "default": "copy",
+                    "description": "Method used to save pipeline results to output directory.",
+                    "fa_icon": "fas fa-copy"
+                }
+            }
+        },
+        "qc_options": {
+            "title": "QC options",
+            "type": "object",
+            "fa_icon": "fas fa-clipboard-check",
+            "description": "Options for skipping quality-control steps.",
+            "properties": {
+                "skip_fastqc": {
+                    "type": "boolean",
+                    "description": "Skip FastQC.",
+                    "fa_icon": "fas fa-fast-forward"
+                },
+                "skip_trimming": {
+                    "type": "boolean",
+                    "description": "Skip adapter trimming.",
+                    "fa_icon": "fas fa-fast-forward"
+                },
+                "skip_preseq": {
+                    "type": "boolean",
+                    "description": "Skip Preseq complexity estimation.",
+                    "fa_icon": "fas fa-fast-forward"
+                }
+            }
+        },
+        "generic_options": {
+            "title": "Generic options",
+            "type": "object",
+            "fa_icon": "fas fa-file-import",
+            "description": "Less common options.",
+            "properties": {
+                "monochrome_logs": {
+                    "type": "boolean",
+                    "description": "Disable coloured log output.",
+                    "fa_icon": "fas fa-palette"
+                }
+            }
+        }
+    },
+    "allOf": [
+        { "$ref": "#/$defs/input_output_options" },
+        { "$ref": "#/$defs/reference_genome_options" },
+        { "$ref": "#/$defs/coverage_options" },
+        { "$ref": "#/$defs/output_options" },
+        { "$ref": "#/$defs/qc_options" },
+        { "$ref": "#/$defs/generic_options" }
+    ]
+}
