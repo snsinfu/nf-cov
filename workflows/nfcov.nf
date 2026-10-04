@@ -9,6 +9,7 @@ include { samplesheetToList } from 'plugin/nf-schema'
 include { PREPARE_GENOME } from '../subworkflows/local/prepare_genome'
 include { FASTQ_QC_TRIM } from '../subworkflows/local/fastq_qc_trim'
 include { FASTQ_ALIGN } from '../subworkflows/local/fastq_align'
+include { BAM_LIBRARY } from '../subworkflows/local/bam_library'
 include { FASTQ_READ_LENGTH } from '../modules/local/fastq_read_length'
 include { buildReads; assignRuns; validateSamplesheet } from '../subworkflows/local/utils_nfcov_pipeline'
 
@@ -61,7 +62,26 @@ workflow NFCOV {
     //
     FASTQ_ALIGN(ch_processed_reads, PREPARE_GENOME.out.index, PREPARE_GENOME.out.fasta, aligner)
 
+    //
+    // Per-library merge, deduplication (mark-only), clean filter, stats, Preseq
+    //
+    ch_ref = PREPARE_GENOME.out.fasta
+        .combine(PREPARE_GENOME.out.fai.map { _meta, f -> f })
+        .first()
+    BAM_LIBRARY(
+        FASTQ_ALIGN.out.bam,
+        ch_ref,
+        params.skip_preseq
+    )
+
     emit:
+    clean_bam   = BAM_LIBRARY.out.bam          // channel: [ val(meta), path(*.bam) ]
+    clean_bai   = BAM_LIBRARY.out.bai          // channel: [ val(meta), path(*.bai) ]
+    dup_metrics = BAM_LIBRARY.out.dup_metrics  // channel: [ val(meta), path(*.metrics.txt) ]
+    stats       = BAM_LIBRARY.out.stats
+    flagstat    = BAM_LIBRARY.out.flagstat
+    idxstats    = BAM_LIBRARY.out.idxstats
+    preseq      = BAM_LIBRARY.out.preseq
     bam   = FASTQ_ALIGN.out.bam       // channel: [ val(meta), path(*.bam) ]
     reads = ch_processed_reads        // channel: [ val(meta), [ fastq_1(, fastq_2) ] ]
     fastqc_zip  = FASTQ_QC_TRIM.out.fastqc_zip
