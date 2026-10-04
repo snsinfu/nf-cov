@@ -103,3 +103,27 @@ def validateSamplesheet(samplesheet) {
         sample_layout[meta.id] = layout
     }
 }
+
+//
+// Largest contig length recorded in a samtools faidx index. The .fai is plain text:
+// NAME<TAB>LENGTH<TAB>OFFSET<TAB>LINEBASES<TAB>LINEWIDTH.
+//
+def maxContigLength(fai) {
+    fai.readLines()
+        .findAll { it?.trim() }
+        .collect { it.split('\t')[1] as Long }
+        .max() ?: 0L
+}
+
+//
+// The BAI format stores positions as 2^29-byte (512 Mbp) blocks and cannot address a contig
+// >= 2^29 bp. Fail early with an actionable message rather than letting samtools fail late.
+//
+def validateIndexFormat(Long maxLen, String format) {
+    if (format == 'bai' && maxLen >= (1L << 29)) {
+        error("Reference has a contig of ${maxLen} bp (>= 512 Mbp / 2^29), which the BAI " +
+            "index format cannot address. Re-run with --bam_index_format csi.")
+    }
+    return true
+}
+

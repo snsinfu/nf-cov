@@ -15,6 +15,7 @@ workflow BAM_LIBRARY {
     ch_bam        // channel: [ val(meta run), path(*.bam) ]
     ch_ref        // channel: [ path(fasta), path(fai) ] (single element)
     skip_preseq   // val: boolean
+    index_format  // val: 'bai' | 'csi' (BAM index format)
 
     main:
     //
@@ -59,11 +60,14 @@ workflow BAM_LIBRARY {
         ch_fasta_fai,
         [ [], [] ],
         [ [], [] ],
-        'bai'
+        index_format
     )
     ch_clean_bam = SAMTOOLS_VIEW.out.bam
-    ch_clean_bai = SAMTOOLS_VIEW.out.bai
-    ch_clean_bam_bai = ch_clean_bam.join(ch_clean_bai, by: [0])
+    //
+    // samtools/view emits .bai and .csi as separate channels; only one is populated.
+    //
+    ch_clean_index = SAMTOOLS_VIEW.out.bai.mix(SAMTOOLS_VIEW.out.csi)
+    ch_clean_bam_bai = ch_clean_bam.join(ch_clean_index, by: [0])
 
     //
     // Alignment stats
@@ -81,8 +85,8 @@ workflow BAM_LIBRARY {
 
     emit:
     bam         = ch_clean_bam            // channel: [ val(meta), path(*.bam) ]
-    bai         = ch_clean_bai            // channel: [ val(meta), path(*.bai) ]
-    bam_bai     = ch_clean_bam_bai        // channel: [ val(meta), path(*.bam), path(*.bai) ]
+    bai         = ch_clean_index          // channel: [ val(meta), path(*.bai|*.csi) ]
+    bam_bai     = ch_clean_bam_bai        // channel: [ val(meta), path(*.bam), path(*.bai|*.csi) ]
     marked_bam  = ch_marked               // channel: [ val(meta), path(*.bam) ]
     dup_metrics = PICARD_MARKDUPLICATES.out.metrics
     stats       = BAM_STATS_SAMTOOLS.out.stats

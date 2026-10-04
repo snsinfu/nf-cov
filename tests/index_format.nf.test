@@ -1,0 +1,35 @@
+nextflow_pipeline {
+
+    name "Test nf-cov CSI index format"
+    script "../main.nf"
+    tag "pipeline"
+    profile "test"
+
+    test("--bam_index_format csi") {
+
+        when {
+            params {
+                outdir           = "$outputDir"
+                input            = "${projectDir}/tests/data/samplesheet_abs.csv"
+                bam_index_format = 'csi'
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+
+                // Index format must not change coverage: same tracks at every published level.
+                { assert file("$outputDir/bwa/merged_library/bigwig/sampleA_REP1.mLb.bigWig").exists() },
+                { assert file("$outputDir/bwa/merged_library/bigwig/sampleA_REP2.mLb.bigWig").exists() },
+                { assert file("$outputDir/bwa/merged_library/bigwig/sampleB_REP1.mLb.bigWig").exists() },
+                { assert file("$outputDir/bwa/merged_replicate/bigwig/sampleA.mRp.bigWig").exists() },
+                { assert !file("$outputDir/bwa/merged_replicate/bigwig/sampleB.mRp.bigWig").exists() },
+
+                // QC still runs against the CSI-indexed BAMs.
+                { assert file("$outputDir/samtools/stats/sampleA_REP1_T1.stats").exists() },
+                { assert file("$outputDir/samtools/idxstats/sampleA_REP1_T1.idxstats").exists() }
+            )
+        }
+    }
+}

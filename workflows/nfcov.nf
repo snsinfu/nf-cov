@@ -13,7 +13,7 @@ include { BAM_LIBRARY } from '../subworkflows/local/bam_library'
 include { BAM_MERGE_LEVELS } from '../subworkflows/local/bam_merge_levels'
 include { BAM_COVERAGE } from '../subworkflows/local/bam_coverage'
 include { FASTQ_READ_LENGTH } from '../modules/local/fastq_read_length'
-include { buildReads; assignRuns; validateSamplesheet } from '../subworkflows/local/utils_nfcov_pipeline'
+include { buildReads; assignRuns; validateSamplesheet; maxContigLength; validateIndexFormat } from '../subworkflows/local/utils_nfcov_pipeline'
 
 workflow NFCOV {
     take:
@@ -60,6 +60,13 @@ workflow NFCOV {
     PREPARE_GENOME(fasta, index, aligner, catalog_gsize, explicit_egs, ch_read_length)
 
     //
+    // Fail early if the BAI format was requested for a genome with a contig >= 512 Mbp.
+    //
+    PREPARE_GENOME.out.fai
+        .map { _meta, fai -> validateIndexFormat(maxContigLength(fai), params.bam_index_format) }
+        .subscribe { }
+
+    //
     // Alignment
     //
     FASTQ_ALIGN(ch_processed_reads, PREPARE_GENOME.out.index, PREPARE_GENOME.out.fasta, aligner)
@@ -73,13 +80,14 @@ workflow NFCOV {
     BAM_LIBRARY(
         FASTQ_ALIGN.out.bam,
         ch_ref,
-        params.skip_preseq
+        params.skip_preseq,
+        params.bam_index_format
     )
 
     //
     // Replicate merges: .mLb (tech reps) and .mRp (bio reps)
     //
-    BAM_MERGE_LEVELS(BAM_LIBRARY.out.bam, ch_ref, params.save_library)
+    BAM_MERGE_LEVELS(BAM_LIBRARY.out.bam, ch_ref, params.save_library, params.bam_index_format)
 
     //
     // Coverage bigWigs. One track per published level; RPGC is recomputed on each BAM.

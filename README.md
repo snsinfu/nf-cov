@@ -3,7 +3,6 @@
 A minimal [nf-core](https://nf-co.re)-style Nextflow pipeline that produces
 genome-wide coverage tracks (bigWig) from short-read FASTQ.
 
-
 ## Usage
 
 Samplesheet:
@@ -37,7 +36,6 @@ samplesheet
   -> bamCoverage
 ```
 
-
 ## Parameters
 
 | Parameter                        | Default   | Description |
@@ -51,6 +49,7 @@ samplesheet
 | `--bwamem2_index`                |           | Precomputed bwa-mem2 index dir. |
 | `--bwamem3_index`                |           | Precomputed bwa-mem3 index dir. |
 | `--aligner`                      | `bwa`     | `bwa`, `bwa-mem2` or `bwa-mem3`. |
+| `--bam_index_format`             | `bai`     | `bai` or `csi`; use `csi` when a contig is >= 512 Mbp. |
 | `--effective_genome_size`        |           | RPGC effective genome size. |
 | `--read_length`                  |           | Read length for catalog lookup / khmer (inferred when unset). |
 | `--bin_size`                     | `1`       | bigWig bin size in bases. |

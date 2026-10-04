@@ -8,14 +8,15 @@
 
 include { SAMTOOLS_MERGE as SAMTOOLS_MERGE_MLB } from '../../../modules/nf-core/samtools/merge'
 include { SAMTOOLS_MERGE as SAMTOOLS_MERGE_MRP } from '../../../modules/nf-core/samtools/merge'
-include { SAMTOOLS_INDEX as SAMTOOLS_INDEX_MLB } from '../../../modules/nf-core/samtools/index'
-include { SAMTOOLS_INDEX as SAMTOOLS_INDEX_MRP } from '../../../modules/nf-core/samtools/index'
+include { SAMTOOLS_INDEX as SAMTOOLS_INDEX_MLB } from '../../../modules/local/samtools_index'
+include { SAMTOOLS_INDEX as SAMTOOLS_INDEX_MRP } from '../../../modules/local/samtools_index'
 
 workflow BAM_MERGE_LEVELS {
     take:
     ch_bam        // channel: [ val(meta library), path(clean *.bam) ]
     ch_ref        // channel: [ path(fasta), path(fai) ] (single element)
     _save_library // val: boolean (publishing handled via config)
+    index_format  // val: 'bai' | 'csi' (BAM index format)
 
     main:
     ch_merge_ref = ch_ref.map { f, fi -> [ [:], f, fi, [] ] }
@@ -43,7 +44,7 @@ workflow BAM_MERGE_LEVELS {
             def m = meta + [ id: "${meta.id}.mLb".toString(), library: meta.id ]
             [ m, bam ]
         }
-    SAMTOOLS_INDEX_MLB(ch_mlb)
+    SAMTOOLS_INDEX_MLB(ch_mlb, index_format)
     ch_mlb_bam_bai = ch_mlb.join(SAMTOOLS_INDEX_MLB.out.index, by: [0])
 
     //
@@ -66,7 +67,7 @@ workflow BAM_MERGE_LEVELS {
 
     SAMTOOLS_MERGE_MRP(ch_mrp_in, ch_merge_ref)
     ch_mrp = SAMTOOLS_MERGE_MRP.out.bam
-    SAMTOOLS_INDEX_MRP(ch_mrp)
+    SAMTOOLS_INDEX_MRP(ch_mrp, index_format)
     ch_mrp_bam_bai = ch_mrp.join(SAMTOOLS_INDEX_MRP.out.index, by: [0])
 
     emit:
