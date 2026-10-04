@@ -17,7 +17,7 @@ workflow PREPARE_GENOME {
     aligner       // string: 'bwa' | 'bwa-mem2' | 'bwa-mem3'
     catalog_gsize // val: map read-length(string) -> effective genome size, or null
     explicit_egs  // val: int, or null
-    read_length   // val: int, or null
+    ch_read_length // channel: val(int read length)
 
     main:
     ch_fasta = channel.value(file(fasta, checkIfExists: true))
@@ -62,37 +62,31 @@ workflow PREPARE_GENOME {
     if (explicit_egs) {
         ch_egs = channel.value(explicit_egs as Long)
     }
-    else {
-        def chosen = null
-        if (catalog_gsize && read_length) {
+    else if (catalog_gsize) {
+        ch_egs = ch_read_length.map { rl ->
             def keys = catalog_gsize.keySet().collect { it.toString() as Integer }.sort()
             def best = null
             def best_dist = Integer.MAX_VALUE
             keys.each { k ->
-                def d = Math.abs(k - (read_length as Integer))
+                def d = Math.abs(k - (rl as Integer))
                 if (d < best_dist) {
                     best_dist = d
                     best = k
                 }
             }
-            if (best != null) {
-                chosen = [key: best.toString(), value: catalog_gsize[best.toString()] as Long]
+            if (best == null) {
+                error("No catalog macs_gsize entry to use for the current read length.")
             }
+            def value = catalog_gsize[best.toString()] as Long
+            log.info "[nf-cov] Using catalog effective genome size ${value} (read length key '${best}')"
+            value
         }
-
-        if (chosen != null) {
-            log.info "[nf-cov] Using catalog effective genome size ${chosen.value} (read length key '${chosen.key}')"
-            ch_egs = channel.value(chosen.value)
-        }
-        else if (read_length) {
-            KHMER_UNIQUEKMERS(ch_fasta.map { item -> [ [:], item ] }, read_length)
-            ch_egs = KHMER_UNIQUEKMERS.out.kmers.map { _meta, kmers ->
-                def txt = kmers.text.trim()
-                txt ? txt.toLong() : 0L
-            }
-        }
-        else {
-            error("Effective genome size is required. Pass --effective_genome_size, use a --genome with a catalog 'macs_gsize', or pass --read_length so khmer can estimate it.")
+    }
+    else {
+        KHMER_UNIQUEKMERS(ch_fasta.map { item -> [ [:], item ] }, ch_read_length)
+        ch_egs = KHMER_UNIQUEKMERS.out.kmers.map { _meta, kmers ->
+            def txt = kmers.text.trim()
+            txt ? txt.toLong() : 0L
         }
     }
 
