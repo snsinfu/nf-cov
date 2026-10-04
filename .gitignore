@@ -1,0 +1,8 @@
+.*
+!.gitignore
+
+*.pyc
+work/
+data/
+results/
+null/
