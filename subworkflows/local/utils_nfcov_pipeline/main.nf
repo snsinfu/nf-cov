@@ -28,10 +28,24 @@ def buildReads(samplesheet) {
             single_end    : single_end,
             level         : 'library'
         ]
-        def fastqs = single_end ? [ file(fastq_1) ] : [ file(fastq_1), file(fastq_2) ]
+        def fastqs = single_end
+            ? [ resolveInputPath(fastq_1) ]
+            : [ resolveInputPath(fastq_1), resolveInputPath(fastq_2) ]
         reads << [ m, fastqs ]
     }
     return reads
+}
+
+//
+// Samplesheet FASTQ paths are normally absolute; resolve relative paths against the
+// pipeline root so committed test samplesheets work from any working directory.
+//
+def resolveInputPath(p) {
+    def s = p.toString()
+    if (s.startsWith('/') || s ==~ /^[A-Za-z]:[\\\/].*/) {
+        return file(s)
+    }
+    return file("${projectDir}/${s}")
 }
 
 //

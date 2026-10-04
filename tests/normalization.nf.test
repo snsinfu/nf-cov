@@ -1,0 +1,42 @@
+nextflow_pipeline {
+
+    name "Test nf-cov normalization (RPGC mean ~ 1)"
+    script "../main.nf"
+    tag "pipeline"
+    profile "test"
+
+    test("rpgc mean") {
+
+        when {
+            params {
+                outdir = "$outputDir"
+                input  = "${projectDir}/tests/data/samplesheet_abs.csv"
+            }
+        }
+
+        then {
+            def mean = { String path ->
+                def py = "/home/agent/.pixi/envs/deeptools/bin/python"
+                def code = "import pyBigWig;bw=pyBigWig.open('${path}');n=0;s=0.0\n" +
+                           "for c,L in bw.chroms().items():\n" +
+                           "    v=bw.stats(c,0,L,type='mean')[0]\n" +
+                           "    s+= (v or 0)*L; n+=L\n" +
+                           "print(s/n)"
+                def p = [py, "-c", code].execute()
+                p.waitFor()
+                return Double.parseDouble(p.text.trim())
+            }
+            assertAll(
+                { assert workflow.success },
+                { assert mean("$outputDir/bwa/merged_library/bigwig/sampleA_REP1.mLb.bigWig") >= 0.9 &&
+                         mean("$outputDir/bwa/merged_library/bigwig/sampleA_REP1.mLb.bigWig") <= 1.1 },
+                { assert mean("$outputDir/bwa/merged_library/bigwig/sampleA_REP2.mLb.bigWig") >= 0.9 &&
+                         mean("$outputDir/bwa/merged_library/bigwig/sampleA_REP2.mLb.bigWig") <= 1.1 },
+                { assert mean("$outputDir/bwa/merged_library/bigwig/sampleB_REP1.mLb.bigWig") >= 0.9 &&
+                         mean("$outputDir/bwa/merged_library/bigwig/sampleB_REP1.mLb.bigWig") <= 1.1 },
+                { assert mean("$outputDir/bwa/merged_replicate/bigwig/sampleA.mRp.bigWig") >= 0.9 &&
+                         mean("$outputDir/bwa/merged_replicate/bigwig/sampleA.mRp.bigWig") <= 1.1 }
+            )
+        }
+    }
+}
