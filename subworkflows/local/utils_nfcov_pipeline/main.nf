@@ -59,7 +59,7 @@ def assignRuns(reads) {
 def validateSamplesheet(samplesheet) {
     // Unique fastq_1
     def seen = [:] as Map
-    samplesheet.each { meta, fastq_1, _fastq_2 ->
+    samplesheet.each { _meta, fastq_1, _fastq_2 ->
         def f1 = fastq_1.toString()
         if (seen.containsKey(f1)) {
             error("Duplicate fastq_1 in samplesheet: ${f1}")

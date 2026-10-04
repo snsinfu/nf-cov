@@ -21,6 +21,8 @@ process FASTQ_READ_LENGTH {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     if [[ "$fastq" == *.gz ]]; then CAT="zcat"; else CAT="cat"; fi
+    # 'head' closes the pipe early; run without pipefail so the SIGPIPE (141) is not an error
+    set +o pipefail
     \$CAT "$fastq" | head -n 40000 | awk 'NR % 4 == 2 { print length(\$0) }' | sort -nr | head -n 1 > ${prefix}.read_length.txt
     """
 

@@ -8,12 +8,14 @@
 
 include { SAMTOOLS_MERGE as SAMTOOLS_MERGE_MLB } from '../../../modules/nf-core/samtools/merge'
 include { SAMTOOLS_MERGE as SAMTOOLS_MERGE_MRP } from '../../../modules/nf-core/samtools/merge'
+include { SAMTOOLS_INDEX as SAMTOOLS_INDEX_MLB } from '../../../modules/nf-core/samtools/index'
+include { SAMTOOLS_INDEX as SAMTOOLS_INDEX_MRP } from '../../../modules/nf-core/samtools/index'
 
 workflow BAM_MERGE_LEVELS {
     take:
     ch_bam        // channel: [ val(meta library), path(clean *.bam) ]
     ch_ref        // channel: [ path(fasta), path(fai) ] (single element)
-    save_library  // val: boolean
+    _save_library // val: boolean (publishing handled via config)
 
     main:
     ch_merge_ref = ch_ref.map { f, fi -> [ [:], f, fi, [] ] }
@@ -41,6 +43,8 @@ workflow BAM_MERGE_LEVELS {
             def m = meta + [ id: "${meta.id}.mLb".toString(), library: meta.id ]
             [ m, bam ]
         }
+    SAMTOOLS_INDEX_MLB(ch_mlb)
+    ch_mlb_bam_bai = ch_mlb.join(SAMTOOLS_INDEX_MLB.out.index, by: [0])
 
     //
     // .mRp: merge biological replicates of a sample, only when there is more than one
@@ -62,8 +66,10 @@ workflow BAM_MERGE_LEVELS {
 
     SAMTOOLS_MERGE_MRP(ch_mrp_in, ch_merge_ref)
     ch_mrp = SAMTOOLS_MERGE_MRP.out.bam
+    SAMTOOLS_INDEX_MRP(ch_mrp)
+    ch_mrp_bam_bai = ch_mrp.join(SAMTOOLS_INDEX_MRP.out.index, by: [0])
 
     emit:
-    mLb = ch_mlb   // channel: [ val(meta), path(*.mLb.bam) ]
-    mRp = ch_mrp   // channel: [ val(meta), path(*.mRp.bam) ]
+    mLb = ch_mlb_bam_bai   // channel: [ val(meta), path(*.mLb.bam), path(*.bai) ]
+    mRp = ch_mrp_bam_bai   // channel: [ val(meta), path(*.mRp.bam), path(*.bai) ]
 }

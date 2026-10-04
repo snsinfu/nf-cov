@@ -64,7 +64,7 @@ workflow PREPARE_GENOME {
     }
     else if (catalog_gsize) {
         ch_egs = ch_read_length.map { rl ->
-            def keys = catalog_gsize.keySet().collect { it.toString() as Integer }.sort()
+            def keys = catalog_gsize.keySet().collect { k -> k.toString() as Integer }.sort()
             def best = null
             def best_dist = Integer.MAX_VALUE
             keys.each { k ->
