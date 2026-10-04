@@ -8,6 +8,7 @@ include { samplesheetToList } from 'plugin/nf-schema'
 
 include { PREPARE_GENOME } from '../subworkflows/local/prepare_genome'
 include { FASTQ_QC_TRIM } from '../subworkflows/local/fastq_qc_trim'
+include { FASTQ_ALIGN } from '../subworkflows/local/fastq_align'
 include { FASTQ_READ_LENGTH } from '../modules/local/fastq_read_length'
 include { buildReads; assignRuns; validateSamplesheet } from '../subworkflows/local/utils_nfcov_pipeline'
 
@@ -55,7 +56,13 @@ workflow NFCOV {
     //
     PREPARE_GENOME(fasta, index, aligner, catalog_gsize, explicit_egs, ch_read_length)
 
+    //
+    // Alignment
+    //
+    FASTQ_ALIGN(ch_processed_reads, PREPARE_GENOME.out.index, PREPARE_GENOME.out.fasta, aligner)
+
     emit:
+    bam   = FASTQ_ALIGN.out.bam       // channel: [ val(meta), path(*.bam) ]
     reads = ch_processed_reads        // channel: [ val(meta), [ fastq_1(, fastq_2) ] ]
     fastqc_zip  = FASTQ_QC_TRIM.out.fastqc_zip
     fastqc_html = FASTQ_QC_TRIM.out.fastqc_html
