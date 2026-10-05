@@ -132,8 +132,20 @@
                 "fragment_size": {
                     "type": "integer",
                     "default": 0,
-                    "description": "Fragment size used to extend reads. 0 = auto (paired-end estimate; single-end no extension).",
+                    "description": "Fragment size used to extend single-end reads. 0 = no extension (paired-end reads always auto-extend).",
                     "fa_icon": "fas fa-arrows-alt-h"
+                },
+                "min_fragment_size": {
+                    "type": ["integer", "null"],
+                    "default": null,
+                    "description": "Minimum fragment length (TLEN) for paired-end reads included in coverage. Unset disables the lower bound.",
+                    "fa_icon": "fas fa-filter"
+                },
+                "max_fragment_size": {
+                    "type": ["integer", "null"],
+                    "default": null,
+                    "description": "Maximum fragment length (TLEN) for paired-end reads included in coverage. Unset disables the upper bound.",
+                    "fa_icon": "fas fa-filter"
                 },
                 "normalization_exclude_chroms": {
                     "type": "string",

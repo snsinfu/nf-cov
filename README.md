@@ -55,7 +55,9 @@ samplesheet
 | `--bin_size`                     | `1`       | bigWig bin size in bases. |
 | `--normalization`                | `RPGC`    | `None`, `RPKM`, `CPM`, `BPM` or `RPGC`. |
 | `--min_mapq`                     | `1`       | Minimum mapping quality for coverage. |
-| `--fragment_size`                | `0`       | `0` = auto (PE estimate; SE no extension). |
+| `--fragment_size`                | `0`       | SE read-extension length; PE always auto-extends. |
+| `--min_fragment_size`            |           | PE only: minimum fragment length (TLEN) to include. Unset disables. |
+| `--max_fragment_size`            |           | PE only: maximum fragment length (TLEN) to include. Unset disables. |
 | `--normalization_exclude_chroms` |           | Chromosomes excluded from normalization (default: catalog `mito_name`). |
 | `--save_library`                 | `false`   | Publish per-tech-library bigWigs/BAMs. |
 | `--skip_fastqc`                  | `false`   | Skip FastQC. |
