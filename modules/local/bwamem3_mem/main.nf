@@ -1,11 +1,22 @@
-process BWAMEM2_MEM {
+process BWAMEM3_MEM {
     tag "${meta.id}"
-    label 'process_high'
+    // Local fork of nf-core/modules bwamem3/mem @ efec54255f9baad3ea032173d75031929883bed8.
+    // Only the resource directives differ: the `process_high` label is replaced so
+    // the inline `memory` is not overridden by `withLabel:process_high` (config
+    // selectors outrank process-body directives). cpus/time keep the old values.
+    cpus { 12 * task.attempt }
+    time { 16.h * task.attempt }
+    memory {
+        // Expected memory footprint of the staged index.
+        def expected = (meta2.index_bytes ?: 0L).B * 1.2
+        def baseLimit = [expected, 48.GB].max()
+        (baseLimit * task.attempt)
+    }
 
     conda "${moduleDir}/environment.yml"
     container "${workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container
-        ? 'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/e0/e05ce34b46ad42810eb29f74e4e304c0cb592b2ca15572929ed8bbaee58faf01/data'
-        : 'community.wave.seqera.io/library/bwa-mem2_htslib_samtools:db98f81f55b64113'}"
+        ? 'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/86/86147f304683f83e8c20d9cf8aebae945f7751402d84553efd735a4f5edfd9e6/data'
+        : 'community.wave.seqera.io/library/bwa-mem3_findutils_htslib_samtools:06f7d72b721717bd'}"
 
     input:
     tuple val(meta), path(reads)
@@ -14,12 +25,9 @@ process BWAMEM2_MEM {
     val sort_bam
 
     output:
-    tuple val(meta), path("*.sam"), emit: sam, optional: true
-    tuple val(meta), path("*.bam"), emit: bam, optional: true
-    tuple val(meta), path("*.cram"), emit: cram, optional: true
-    tuple val(meta), path("*.crai"), emit: crai, optional: true
-    tuple val(meta), path("*.csi"), emit: csi, optional: true
-    tuple val("${task.process}"), val('bwamem2'), eval('bwa-mem2 version | grep -o -E "[0-9]+(\\.[0-9]+)+"'), emit: versions_bwamem2, topic: versions
+    tuple val(meta), path("*.{sam,bam,cram}"), emit: aligned
+    tuple val(meta), path("*.{bai,csi,crai}"), emit: index, optional: true
+    tuple val("${task.process}"), val('bwamem3'), eval("bwa-mem3 version | sed -nE '1 s/^([0-9]+(\\.[0-9]+)+).*/\\1/p'"), emit: versions_bwamem3, topic: versions
     tuple val("${task.process}"), val('samtools'), eval("samtools version | sed '1!d;s/.* //'"), emit: versions_samtools, topic: versions
 
     when:
@@ -41,7 +49,7 @@ process BWAMEM2_MEM {
     """
     INDEX=`find -L ./ -name "*.amb" | sed 's/\\.amb\$//'`
 
-    bwa-mem2 \\
+    bwa-mem3 \\
         mem \\
         ${args} \\
         -t ${task.cpus} \\
