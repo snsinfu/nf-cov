@@ -1,8 +1,15 @@
 process BWAMEM2_INDEX {
     tag "$fasta"
-    // NOTE Requires 28N GB memory where N is the size of the reference sequence, floor of 280M
-    // source: https://github.com/bwa-mem2/bwa-mem2/issues/9
-    memory { 280.MB * Math.ceil(fasta.size() / 10000000) * task.attempt }
+    // Local fork of nf-core/modules bwamem2/index @ efec54255f9baad3ea032173d75031929883bed8.
+    // Only the memory directive differs.
+    memory {
+        // Expected memory footprint of the index build: ~28 B per genome base
+        // (*4 when the FASTA is gzipped, *1.1 headroom above the build peak).
+        def bases = fasta.size() * (fasta.name.endsWith('.gz') ? 4 : 1)
+        def expected = (28L * bases).B * 1.1
+        def baseLimit = [expected, 64.GB].max()
+        (baseLimit * task.attempt)
+    }
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container ?
