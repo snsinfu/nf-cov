@@ -22,6 +22,21 @@ workflow {
         error("Invalid --aligner '${params.aligner}'. Use 'bwa', 'bwa-mem2' or 'bwa-mem3'.")
     }
 
+    //
+    // Validate the paired-end fragment-size filter bounds (null disables that direction).
+    //
+    def min_frag = params.min_fragment_size != null ? params.min_fragment_size as Integer : null
+    def max_frag = params.max_fragment_size != null ? params.max_fragment_size as Integer : null
+    if (min_frag != null && min_frag < 0) {
+        error("--min_fragment_size must be >= 0 (got ${min_frag}).")
+    }
+    if (max_frag != null && max_frag < 0) {
+        error("--max_fragment_size must be >= 0 (got ${max_frag}).")
+    }
+    if (min_frag != null && max_frag != null && min_frag > max_frag) {
+        error("--min_fragment_size (${min_frag}) must be <= --max_fragment_size (${max_frag}).")
+    }
+
     def index = resolveAlignerIndex(params.aligner)
 
     //
