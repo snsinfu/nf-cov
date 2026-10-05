@@ -1,0 +1,64 @@
+nextflow_pipeline {
+
+    name "Test nf-cov PE fragment-size filter"
+    script "../main.nf"
+    tag "pipeline"
+    profile "test"
+
+    test("--min_fragment_size keeps long fragments") {
+
+        when {
+            params {
+                outdir            = "$outputDir"
+                input             = "${projectDir}/tests/data/samplesheet_fragment_abs.csv"
+                min_fragment_size = 300
+            }
+        }
+
+        then {
+            def bam = "$outputDir/bwa/merged_library/bam/sampleMix_REP1.mLb.bam"
+            def count = { String expr ->
+                def p = ["samtools", "view", "-c", "-e", expr, bam].execute()
+                p.waitFor()
+                return p.text.trim() as Integer
+            }
+            assertAll(
+                { assert workflow.success },
+                { assert file("$outputDir/bwa/merged_library/bigwig/sampleMix_REP1.mLb.bigWig").exists() },
+                // SE library must be untouched by a PE-only filter: min=300 would otherwise drop all tlen=0 reads.
+                { assert file("$outputDir/bwa/merged_library/bigwig/sampleB_REP1.mLb.bigWig").exists() },
+                { assert count("(tlen >= 300) || (tlen <= -300)") == count("1") },
+                { assert count("(tlen <= 299) && (tlen >= -299)") == 0 },
+                { assert count("1") > 0 }
+            )
+        }
+    }
+
+    test("--max_fragment_size keeps short fragments") {
+
+        when {
+            params {
+                outdir            = "$outputDir"
+                input             = "${projectDir}/tests/data/samplesheet_fragment_abs.csv"
+                max_fragment_size = 200
+            }
+        }
+
+        then {
+            def bam = "$outputDir/bwa/merged_library/bam/sampleMix_REP1.mLb.bam"
+            def count = { String expr ->
+                def p = ["samtools", "view", "-c", "-e", expr, bam].execute()
+                p.waitFor()
+                return p.text.trim() as Integer
+            }
+            assertAll(
+                { assert workflow.success },
+                { assert file("$outputDir/bwa/merged_library/bigwig/sampleMix_REP1.mLb.bigWig").exists() },
+                { assert file("$outputDir/bwa/merged_library/bigwig/sampleB_REP1.mLb.bigWig").exists() },
+                { assert count("(tlen <= 200) && (tlen >= -200)") == count("1") },
+                { assert count("(tlen >= 201) || (tlen <= -201)") == 0 },
+                { assert count("1") > 0 }
+            )
+        }
+    }
+}
